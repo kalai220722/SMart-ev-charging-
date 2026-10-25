@@ -28,6 +28,6 @@ class SafeStationObservation(Observation):
 
     hour: int = Field(default=0, description="Hour of the day (0-23)", ge=0, le=23)
     grid_price: float = Field(default=0.0, description="Current price of the grid")
-    station_battery_level: float = Field(default=100.0, description="Station Battery Level (0-100)", ge=0.0, le=100.0)
+    station_battery_level: float = Field(default=1000.0, description="Station Battery Level (0-1000 kWh)", ge=0.0, le=1000.0)
     car_present: int = Field(default=0, description="Car Presence (0 or 1)", ge=0, le=1)
     car_battery_need: float = Field(default=0.0, description="Car Battery Need (0-100)", ge=0.0, le=100.0)

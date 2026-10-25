@@ -1,13 +1,23 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
 
 """Safe Station Environment."""
 
-from .client import SafeStationEnv
-from .models import SafeStationAction, SafeStationObservation
+try:
+    from .client import SafeStationEnv
+    from .models import SafeStationAction, SafeStationObservation
+except ImportError:
+    try:
+        from ..client import SafeStationEnv
+        from ..models import SafeStationAction, SafeStationObservation
+    except ImportError:
+        try:
+            from client import SafeStationEnv
+            from models import SafeStationAction, SafeStationObservation
+        except ImportError:
+            SafeStationEnv = None
+            SafeStationAction = None
+            SafeStationObservation = None
 
 __all__ = [
     "SafeStationAction",

@@ -16,11 +16,11 @@ class MockOpenAI:
         car_need = obs.car_battery_need
 
         if car_present:
-            if bess > 20.0:
+            if bess > 200.0:
                 return 1  # Battery: zero grid cost + peak-shave +50 bonus if price > 10
             return 0  # Grid: safe fallback when BESS at floor
         else:
-            if grid_price < 5.0 and bess < 100.0:
+            if grid_price < 5.0 and bess < 1000.0:
                 return 2  # Off-peak top-up: +60/step net profit
             return 0  # Wait — top-up at price >= 5 is not profitable
 

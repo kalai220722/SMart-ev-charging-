@@ -38,7 +38,7 @@ class SafeStationEnvironment(Environment):
         # Internal state
         self.hour = 0
         self.grid_price = 4.0
-        self.station_battery_level = 100.0
+        self.station_battery_level = 1000.0
         self.car_present = 0
         self.car_battery_need = 0.0
 
@@ -70,7 +70,7 @@ class SafeStationEnvironment(Environment):
         
         self.hour = random.randint(0, 23)
         self.grid_price = self._get_grid_price(self.hour)
-        self.station_battery_level = 100.0
+        self.station_battery_level = 1000.0
         
         # Start with a car 50% of the time
         self.car_present = 1 if random.random() > 0.5 else 0
@@ -106,7 +106,7 @@ class SafeStationEnvironment(Environment):
         elif act == 2:  # Top-up Station Battery
             if not self.car_present:
                 # Top up BESS
-                space_left = 100.0 - self.station_battery_level
+                space_left = 1000.0 - self.station_battery_level
                 energy_from_grid = min(30.0, space_left)
                 self.station_battery_level += energy_from_grid
                 

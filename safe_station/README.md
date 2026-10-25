@@ -30,7 +30,7 @@ The Smart-Station handles dynamically arriving EVs that demand a certain amount 
 The environment observation space (`SafeStationObservation`) gives the agent real-time metrics to act on:
 - `hour` (int): Hour of the day (0-23).
 - `grid_price` (float): Current cost to pull electricity from the grid.
-- `station_battery_level` (float): The current level of the Station's BESS (0.0 to 100.0).
+- `station_battery_level (float): The current level of the Station's BESS (0.0 to 1000.0 kWh)..
 - `car_present` (int): 0 if the station is empty, 1 if an EV is waiting.
 - `car_battery_need` (float): Amount of electricity the present EV still needs (0.0 to 100.0).
 
@@ -61,7 +61,7 @@ The RL agent logic is strictly optimized by balancing these backend Mathematical
 ### `reset()`
 Resets the environment back to a clean starting state.
 - Initializes a new randomized `hour` and calculates the corresponding `grid_price`.
-- Restores the `station_battery_level` safely back to `100.0`.
+- Restores the `station_battery_level` safely back to `1000.0`.
 - Enacts a 50% chance of spawning an initial EV (`car_present = 1`) with a random `car_battery_need`.
 - **Returns**: A `SafeStationObservation` initial state object (In local Python wrappers, translated into a Dictionary).
 

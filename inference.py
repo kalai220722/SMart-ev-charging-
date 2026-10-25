@@ -217,11 +217,11 @@ def heuristic_pick_action(car_present, grid_price, bess_level, car_need=0.0):
     - At normal/peak prices, top-up costs money with no bonus → just wait.
     """
     if car_present:
-        if bess_level > 20.0:
+        if bess_level > 200.0:
             return 1  # Battery: zero grid cost + peak-shave +50 bonus if price > 10
         return 0  # Grid: safe fallback when BESS at floor
     else:
-        if grid_price < 5.0 and bess_level < 100.0:
+        if grid_price < 5.0 and bess_level < 1000.0:
             return 2  # Off-peak top-up: +60/step net profit
         return 0  # Wait — top-up at price ≥ 5 is not profitable
 
@@ -234,7 +234,7 @@ def compute_reward_math(action_id, grid_price, car_present, car_need_before, bes
     elif action_id == 1 and car_present:
         energy_batt = 20.0; charge_amt = 20.0
     elif action_id == 2 and not car_present:
-        energy_grid = min(30.0, 100.0 - bess_before)
+        energy_grid = min(30.0, 1000.0 - bess_before)
         if grid_price < 5.0 and energy_grid > 0:
             bonus += (energy_grid * 6.0)
     elif action_id == 3 and car_present:

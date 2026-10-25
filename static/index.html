@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeStation ⚡ | Dual-Source EV BESS Smart Hub & RL Control Center</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js & Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Outfit"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b'
+            },
+            cyanGlow: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7'
+            },
+            violetGlow: {
+              400: '#c084fc',
+              500: '#a855f7',
+              600: '#9333ea'
+            },
+            amberGlow: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706'
+            },
+            crimsonGlow: {
+              400: '#fb7185',
+              500: '#f43f5e',
+              600: '#e11d48'
+            },
+            dark: {
+              950: '#050811',
+              900: '#0a0f1d',
+              850: '#0f1629',
+              800: '#151e36',
+              700: '#1e2b4d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    /* Custom Glow & Animations */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    @keyframes flow-dash {
+      to { stroke-dashoffset: -40; }
+    }
+    @keyframes car-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes energy-hum {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    
+    .glow-brand {
+      filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.45));
+    }
+    .glow-cyan {
+      filter: drop-shadow(0 0 12px rgba(14, 165, 233, 0.45));
+    }
+    .glow-purple {
+      filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.45));
+    }
+    .glow-amber {
+      filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.45));
+    }
+    .glow-crimson {
+      filter: drop-shadow(0 0 14px rgba(244, 63, 94, 0.6));
+    }
+
+    .flow-active {
+      stroke-dasharray: 8 6;
+      animation: flow-dash 1.2s linear infinite;
+    }
+    .flow-bess { stroke: #10b981; stroke-width: 4.5; filter: drop-shadow(0 0 6px #10b981); }
+    .flow-grid { stroke: #0ea5e9; stroke-width: 4.5; filter: drop-shadow(0 0 6px #0ea5e9); }
+    .flow-hybrid { stroke: #c084fc; stroke-width: 5; filter: drop-shadow(0 0 8px #a855f7); }
+    .flow-topup { stroke: #f59e0b; stroke-width: 4.5; filter: drop-shadow(0 0 6px #f59e0b); }
+
+    .car-docked {
+      animation: car-bounce 3s ease-in-out infinite;
+    }
+
+    /* Glass card styles */
+    .glass-card {
+      background: linear-gradient(135deg, rgba(15, 22, 41, 0.8) 0%, rgba(10, 15, 29, 0.9) 100%);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glass-card-interactive {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-card-interactive:hover {
+      border-color: rgba(16, 185, 129, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px 0 rgba(16, 185, 129, 0.12);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #070b14; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen font-sans antialiased flex flex-col selection:bg-brand-500 selection:text-black">
+
+  <!-- TOP HIGH-TECH NAVBAR -->
+  <header class="border-b border-dark-700/60 bg-dark-900/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Branding -->
+      <div class="flex items-center space-x-3.5">
+        <div class="relative group cursor-pointer" onclick="resetEpisode()">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-cyanGlow-500 to-violetGlow-500 flex items-center justify-center shadow-lg shadow-brand-500/25 transition group-hover:scale-105">
+            <i data-lucide="zap" class="w-5 h-5 text-black stroke-[3]"></i>
+          </div>
+          <span class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-dark-950 animate-ping"></span>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-display font-black text-xl tracking-tight text-white flex items-center gap-1.5">
+              SafeStation <span class="text-brand-400">⚡</span>
+            </span>
+            <span class="text-[10px] font-mono uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-400 border border-brand-500/20">
+              OpenEnv RL Hub
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium">Meta PyTorch OpenEnv Hackathon 2026 • Dual-Source EV Depot</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Toolbar -->
+      <div class="flex items-center space-x-3">
+        
+        <!-- Live Connection & Health Badge -->
+        <div id="connectionBadge" class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-dark-850 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="backendStatusText">Depot Online :8000</span>
+        </div>
+
+        <!-- Audio Synthesizer Toggle -->
+        <button id="btnAudioToggle" onclick="toggleAudio()" title="Toggle Web Audio SFX" class="p-2 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-slate-400 hover:text-brand-400 transition flex items-center justify-center">
+          <i data-lucide="volume-2" id="iconAudio" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Custom Scenario Injector Modal Trigger -->
+        <button onclick="openScenarioModal()" title="Inject Custom Scenario State" class="px-3 py-1.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 text-cyanGlow-400"></i>
+          <span>Scenario Injector</span>
+        </button>
+
+        <!-- View Switcher Tabs -->
+        <div class="bg-dark-900 p-1 rounded-xl border border-dark-700/80 flex text-xs font-semibold">
+          <button id="btnTabSim" onclick="switchView('sim')" class="px-3 py-1.5 rounded-lg transition bg-brand-600 text-white shadow-md shadow-brand-600/30 flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-3.5 h-3.5"></i> Live Twin
+          </button>
+          <button id="btnTabTasks" onclick="switchView('tasks')" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1.5">
+            <i data-lucide="award" class="w-3.5 h-3.5"></i> Benchmarks
+          </button>
+          <button id="btnTabDocs" onclick="switchView('docs')" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1.5">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i> RL Math & MDP
+          </button>
+        </div>
+
+        <!-- Quick Reset Button -->
+        <button onclick="resetEpisode()" title="Restart Simulation Episode [R]" class="p-2 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-slate-400 hover:text-white transition group">
+          <i data-lucide="rotate-ccw" class="w-4 h-4 group-hover:-rotate-90 transition-transform"></i>
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- ================= VIEW 1: LIVE DIGITAL TWIN & COCKPIT ================= -->
+    <div id="viewSim" class="space-y-6">
+
+      <!-- TOP TELEMETRY HUD BAR (5 METRIC CARDS) -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+
+        <!-- 1. Station Clock & Quarter-Hour -->
+        <div class="glass-card rounded-2xl p-4 relative overflow-hidden group">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-cyanGlow-400"></i> Station Clock
+            </span>
+            <span id="dayPhaseBadge" class="text-[9px] font-mono uppercase font-bold px-1.5 py-0.5 rounded bg-cyanGlow-500/10 text-cyanGlow-400 border border-cyanGlow-500/20">Night</span>
+          </div>
+          <div class="flex items-baseline space-x-2">
+            <div id="valTimeDisplay" class="font-display font-black text-2xl tracking-tight text-white">00:00</div>
+            <div id="valQuarterDisplay" class="text-xs text-slate-400 font-mono">Step 0/96</div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between font-mono">
+            <span>Episode:</span>
+            <span id="valEpisodePct" class="text-cyanGlow-400 font-bold">0%</span>
+          </div>
+          <div class="w-full bg-dark-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+            <div id="barEpisodeProgress" class="bg-gradient-to-r from-cyanGlow-500 to-brand-500 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- 2. Dynamic Grid Tariff -->
+        <div class="glass-card rounded-2xl p-4 relative overflow-hidden group">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amberGlow-400"></i> Central Grid Tariff
+            </span>
+            <span id="badgeTariffTier" class="text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">OFF-PEAK</span>
+          </div>
+          <div class="flex items-baseline space-x-1.5">
+            <div id="valGridPrice" class="font-display font-black text-2xl tracking-tight text-white">₹4.0</div>
+            <span class="text-xs text-slate-400 font-mono">/ kWh</span>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Arbitrage Multiplier:</span>
+            <span id="valTariffMult" class="font-mono text-emerald-400 font-bold">6x Bonus</span>
+          </div>
+          <div class="w-full bg-dark-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+            <div id="barTariffTier" class="bg-emerald-500 h-full transition-all duration-300" style="width: 25%"></div>
+          </div>
+        </div>
+
+        <!-- 3. Station BESS Energy Storage -->
+        <div class="glass-card rounded-2xl p-4 relative overflow-hidden group">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="battery-charging" class="w-3.5 h-3.5 text-brand-400"></i> Station BESS
+            </span>
+            <span id="valBessPct" class="text-[10px] font-mono font-bold text-brand-400">100%</span>
+          </div>
+          <div class="flex items-baseline space-x-1">
+            <div id="valBessLevel" class="font-display font-black text-2xl tracking-tight text-white">1000.0</div>
+            <span class="text-xs text-slate-400 font-mono">/ 1000 kWh</span>
+          </div>
+          <div class="mt-2 text-[11px] flex items-center justify-between">
+            <span id="valBessWarning" class="text-emerald-400 font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Reserve Optimal
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Floor: 0 kWh</span>
+          </div>
+          <div class="w-full bg-dark-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+            <div id="barBessProgress" class="bg-gradient-to-r from-emerald-500 to-brand-400 h-full transition-all duration-300 shadow-sm shadow-brand-500/50" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- 4. Smart EV Charging Bay Status -->
+        <div class="glass-card rounded-2xl p-4 relative overflow-hidden group">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="car" class="w-3.5 h-3.5 text-violetGlow-400"></i> EV Charging Bay
+            </span>
+            <span id="valBayBadge" class="text-[9px] font-mono uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">VACANT</span>
+          </div>
+          <div class="flex items-baseline space-x-2">
+            <div id="valBayStatus" class="font-display font-black text-xl tracking-tight text-slate-400">NO VEHICLE</div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Energy Required:</span>
+            <span id="valCarNeed" class="font-mono font-bold text-white">0.0 kWh</span>
+          </div>
+          <div class="w-full bg-dark-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+            <div id="barCarNeed" class="bg-gradient-to-r from-violetGlow-500 to-indigo-500 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- 5. Cumulative Reward & Meta RL Score -->
+        <div class="glass-card rounded-2xl p-4 relative overflow-hidden group col-span-2 md:col-span-1">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="trending-up" class="w-3.5 h-3.5 text-brand-400"></i> Net Profit / Reward
+            </span>
+            <span id="valLeaderboardTier" class="text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">GRADE A</span>
+          </div>
+          <div class="flex items-baseline space-x-1.5">
+            <div id="valTotalReward" class="font-display font-black text-2xl tracking-tight text-emerald-400">₹0.00</div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between font-mono">
+            <span>Meta Score:</span>
+            <span id="valMetaScore" class="font-bold text-brand-400">0.50 / 1.00</span>
+          </div>
+          <div class="w-full bg-dark-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+            <div id="barMetaScore" class="bg-brand-500 h-full transition-all duration-300" style="width: 50%"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MAIN INTERACTIVE SECTION: DIGITAL TWIN SCHEMATIC & TACTICAL CONTROL DECK -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- DIGITAL TWIN GRAPHICAL POWER FLOW SCHEMATIC (7 Cols) -->
+        <div class="lg:col-span-7 glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+          
+          <div class="flex items-center justify-between border-b border-dark-700/60 pb-3 mb-4">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-brand-400 animate-ping"></span>
+              <h2 class="font-display font-black text-sm tracking-wider uppercase text-white flex items-center gap-2">
+                Dual-Source Power Flow Digital Twin
+              </h2>
+            </div>
+            <div id="flowStatusBadge" class="text-xs px-3 py-1 rounded-full bg-dark-800 text-slate-300 border border-dark-700 font-mono font-medium">
+              System Standby
+            </div>
+          </div>
+
+          <!-- SCHEMATIC CANVAS / INTERACTIVE SVG -->
+          <div class="relative w-full h-80 sm:h-96 bg-dark-950/80 rounded-2xl border border-dark-700/70 p-4 flex items-center justify-center overflow-hidden">
+            
+            <!-- Ambient Circuit Grid Background -->
+            <div class="absolute inset-0 opacity-15 pointer-events-none" style="background-image: radial-gradient(#38bdf8 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+            <!-- SVG CONDUIT POWER LINES -->
+            <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 740 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradGridBess" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#0ea5e9"/>
+                  <stop offset="100%" stop-color="#10b981"/>
+                </linearGradient>
+                <linearGradient id="gradGridEv" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#0ea5e9"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+                <linearGradient id="gradBessEv" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#10b981"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Conduit Passive Base Tracks -->
+              <!-- 1. Grid -> Central Inverter Hub (M 150 110 L 370 170) -->
+              <path d="M 150 110 L 370 170" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+              <!-- 2. Central Inverter Hub -> BESS Storage (M 370 170 L 590 110) -->
+              <path d="M 370 170 L 590 110" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+              <!-- 3. Central Inverter Hub -> EV Bay (M 370 170 L 370 290) -->
+              <path d="M 370 170 L 370 290" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+
+              <!-- Dynamic Animated Energy Conduits -->
+              <!-- Wire 1: Grid Direct to EV -->
+              <path id="lineGridEv" d="M 150 110 L 370 170 L 370 290" stroke="#0ea5e9" stroke-width="5" stroke-linecap="round" class="opacity-0 transition-opacity duration-300"/>
+              <!-- Wire 2: BESS Direct to EV -->
+              <path id="lineBessEv" d="M 590 110 L 370 170 L 370 290" stroke="#10b981" stroke-width="5" stroke-linecap="round" class="opacity-0 transition-opacity duration-300"/>
+              <!-- Wire 3: Grid to BESS Top-Up -->
+              <path id="lineGridBess" d="M 150 110 L 370 170 L 590 110" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" class="opacity-0 transition-opacity duration-300"/>
+              <!-- Wire 4: Hybrid Dual Flow -->
+              <path id="lineHybridFlow" d="M 150 110 L 370 170 L 370 290" stroke="#c084fc" stroke-width="6" stroke-linecap="round" class="opacity-0 transition-opacity duration-300"/>
+
+              <!-- Inverter Center Pulsing Core Circle -->
+              <circle cx="370" cy="170" r="14" fill="#0f172a" stroke="#334155" stroke-width="3"/>
+              <circle id="coreInverterPulse" cx="370" cy="170" r="8" fill="#10b981" class="transition-all duration-300"/>
+            </svg>
+
+            <!-- NODE 1: CENTRAL POWER GRID (Top-Left) -->
+            <div class="absolute left-6 top-6 w-44 bg-dark-900/90 border border-dark-700/80 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md text-center hover:border-cyanGlow-500/50 transition">
+              <div class="w-11 h-11 mx-auto rounded-xl bg-cyanGlow-500/15 border border-cyanGlow-500/30 flex items-center justify-center text-cyanGlow-400 mb-2">
+                <i data-lucide="radio-tower" class="w-6 h-6 stroke-[2.2]"></i>
+              </div>
+              <div class="font-display font-black text-xs text-white uppercase tracking-wider">CENTRAL GRID</div>
+              <div id="schematicGridRate" class="text-xs font-mono text-cyanGlow-400 font-bold mt-0.5">₹4.0 / kWh</div>
+              <div class="flex items-center justify-center gap-1 mt-1.5">
+                <span id="schematicPeakTag" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                  Off-Peak Zone
+                </span>
+              </div>
+            </div>
+
+            <!-- NODE 2: STATION BESS BATTERY VAULT (Top-Right) -->
+            <div class="absolute right-6 top-6 w-48 bg-dark-900/90 border border-dark-700/80 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md text-center hover:border-brand-500/50 transition">
+              <div class="w-11 h-11 mx-auto rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 mb-2">
+                <i data-lucide="battery" class="w-6 h-6 stroke-[2.2]"></i>
+              </div>
+              <div class="font-display font-black text-xs text-white uppercase tracking-wider">BESS STORAGE</div>
+              <div id="schematicBessCap" class="text-xs font-mono text-brand-400 font-bold mt-0.5">1000.0 kWh (100%)</div>
+              
+              <!-- 5 Battery Cells Modular Visualization -->
+              <div class="grid grid-cols-5 gap-1 mt-2 px-1">
+                <div id="bessCell1" class="h-3 rounded-sm bg-brand-500 transition-all duration-300"></div>
+                <div id="bessCell2" class="h-3 rounded-sm bg-brand-500 transition-all duration-300"></div>
+                <div id="bessCell3" class="h-3 rounded-sm bg-brand-500 transition-all duration-300"></div>
+                <div id="bessCell4" class="h-3 rounded-sm bg-brand-500 transition-all duration-300"></div>
+                <div id="bessCell5" class="h-3 rounded-sm bg-brand-500 transition-all duration-300"></div>
+              </div>
+              <div class="text-[9px] text-slate-400 font-mono mt-1 flex justify-between">
+                <span>0% Floor</span>
+                <span id="schematicBessHealth">Optimal</span>
+                <span>100% Max</span>
+              </div>
+            </div>
+
+            <!-- CENTRAL INVERTER / SMART CONTROLLER BADGE -->
+            <div class="absolute top-[138px] left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-dark-900/95 border border-dark-700 text-[10px] font-mono text-slate-300 flex items-center gap-1.5 shadow-lg">
+              <i data-lucide="cpu" class="w-3 h-3 text-brand-400"></i>
+              <span id="schematicInverterMode">Inverter Idle (98.4% Eff)</span>
+            </div>
+
+            <!-- NODE 3: DUAL-GUN SMART EV CHARGING BAY (Bottom-Center) -->
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-64 bg-dark-900/90 border border-dark-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center hover:border-violetGlow-500/50 transition">
+              
+              <!-- Vehicle Presence Visualization -->
+              <div class="relative h-14 flex items-center justify-center mb-1">
+                
+                <!-- Graphic When Car is Present -->
+                <div id="evCarGraphic" class="hidden flex-col items-center car-docked">
+                  <div class="relative">
+                    <svg class="w-24 h-10 text-brand-400" viewBox="0 0 100 40" fill="currentColor">
+                      <!-- Sleek Cyber EV Coupe Silhouette -->
+                      <path d="M 12 28 C 12 25, 20 25, 22 28 C 24 31, 32 31, 34 28 C 36 24, 64 24, 66 28 C 68 31, 76 31, 78 28 C 80 25, 88 25, 88 28 C 94 28, 96 23, 90 20 L 76 18 L 60 8 L 30 8 L 18 18 L 8 20 C 4 23, 6 28, 12 28 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+                      <!-- Wheels -->
+                      <circle cx="28" cy="28" r="5" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+                      <circle cx="72" cy="28" r="5" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+                      <!-- Windows & Headlights -->
+                      <polygon points="32,10 58,10 54,17 26,17" fill="#38bdf8" opacity="0.6"/>
+                      <circle cx="90" cy="21" r="2" fill="#34d399"/>
+                    </svg>
+                    <!-- Pulsing Charging Cable Port -->
+                    <span class="absolute -top-1 right-2 w-2 h-2 rounded-full bg-cyanGlow-400 animate-ping"></span>
+                  </div>
+                </div>
+
+                <!-- Graphic When Bay is Empty -->
+                <div id="evEmptyGraphic" class="flex flex-col items-center">
+                  <div class="w-10 h-10 rounded-xl bg-dark-800 border border-dashed border-dark-700 flex items-center justify-center text-slate-500 mb-1">
+                    <i data-lucide="parking-circle" class="w-5 h-5"></i>
+                  </div>
+                </div>
+
+              </div>
+
+              <div id="schematicEvTitle" class="font-display font-black text-xs text-slate-300 uppercase tracking-wider">BAY VACANT</div>
+              <div id="schematicEvNeed" class="text-xs font-mono text-slate-400 mt-0.5">Awaiting EV Arrival</div>
+              
+              <!-- Vehicle Battery Need Bar -->
+              <div class="w-full bg-dark-800 h-2 rounded-full mt-2 overflow-hidden border border-dark-700">
+                <div id="schematicEvBar" class="bg-gradient-to-r from-violetGlow-500 to-indigo-500 h-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Central Active Flow Indicator Pill -->
+            <div id="centerFlowPill" class="absolute bottom-4 left-6 px-3 py-1.5 rounded-xl bg-dark-900/90 border border-dark-700 text-[11px] font-mono text-slate-300 flex items-center gap-2 shadow-lg">
+              <i data-lucide="arrow-right-left" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span id="centerFlowText">Ready for action command</span>
+            </div>
+
+          </div>
+
+          <!-- Bottom Telemetry Badges Strip -->
+          <div class="grid grid-cols-4 gap-2.5 mt-4 text-xs font-medium text-slate-400">
+            <div class="glass-card p-2.5 rounded-xl flex items-center justify-between">
+              <span>Cars Completed:</span>
+              <span id="valCarsServed" class="text-white font-mono font-bold text-sm">0</span>
+            </div>
+            <div class="glass-card p-2.5 rounded-xl flex items-center justify-between">
+              <span>Peak Bonuses (+₹50):</span>
+              <span id="valPeakBonusCount" class="text-brand-400 font-mono font-bold text-sm">0</span>
+            </div>
+            <div class="glass-card p-2.5 rounded-xl flex items-center justify-between">
+              <span>Top-Up Arbitrage:</span>
+              <span id="valTopUpCount" class="text-amberGlow-400 font-mono font-bold text-sm">₹0</span>
+            </div>
+            <div class="glass-card p-2.5 rounded-xl flex items-center justify-between">
+              <span>Grid Costs Paid:</span>
+              <span id="valGridCostTotal" class="text-crimsonGlow-400 font-mono font-bold text-sm">₹0</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TACTICAL ACTION COMMAND DECK (5 Cols) -->
+        <div class="lg:col-span-5 glass-card rounded-3xl p-6 shadow-2xl flex flex-col justify-between">
+          
+          <div>
+            <div class="flex items-center justify-between border-b border-dark-700/60 pb-3 mb-4">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-cyanGlow-400"></i>
+                <h2 class="font-display font-black text-sm text-white uppercase tracking-wider">Tactical Action Deck</h2>
+              </div>
+              <span class="text-xs text-slate-400 font-mono">Step <span id="ctrlStepBadge" class="text-white font-bold">0</span>/96</span>
+            </div>
+
+            <!-- ACTION DECISION ADVICE / COPILOT -->
+            <div id="aiRecommendationBox" class="mb-4 p-3.5 rounded-2xl bg-cyanGlow-500/10 border border-cyanGlow-500/30 text-cyanGlow-300 text-xs flex items-start gap-3">
+              <div class="w-7 h-7 rounded-lg bg-cyanGlow-500/20 flex items-center justify-center shrink-0 text-cyanGlow-400 mt-0.5">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <span class="font-bold text-white text-[11px] uppercase tracking-wider font-mono">AI POLICY ADVISORY</span>
+                <p id="aiRecommendationText" class="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                  Off-peak hour (₹4.0) with empty bay. Recommended: <strong>Top-Up BESS (Action 2)</strong> to capture +₹60 arbitrage profit!
+                </p>
+              </div>
+            </div>
+
+            <!-- 4 ENHANCED ACTION BUTTONS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+              <!-- Action 0: Grid Charge -->
+              <button onclick="executeAction(0)" id="btnAct0" class="glass-card-interactive group text-left p-3.5 rounded-2xl bg-dark-900/90 border border-dark-700/80 hover:border-cyanGlow-500 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-black text-cyanGlow-400 flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-cyanGlow-500/20 flex items-center justify-center text-[10px] font-mono">0</span>
+                    Grid Charge
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">20 kW</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-snug">Draw 20 units from Grid directly into EV.</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-dark-800 pt-1.5">
+                  <span>Est. Expense:</span>
+                  <span id="costAct0" class="font-mono text-amberGlow-400 font-semibold">-₹80</span>
+                </div>
+              </button>
+
+              <!-- Action 1: Battery Charge -->
+              <button onclick="executeAction(1)" id="btnAct1" class="glass-card-interactive group text-left p-3.5 rounded-2xl bg-dark-900/90 border border-dark-700/80 hover:border-brand-500 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-black text-brand-400 flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-brand-500/20 flex items-center justify-center text-[10px] font-mono">1</span>
+                    BESS Charge
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">20 kW</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-snug">Discharge 20 units from BESS. Zero grid cost!</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-dark-800 pt-1.5">
+                  <span>Peak Bonus:</span>
+                  <span id="bonusAct1" class="font-mono text-brand-400 font-semibold">+₹50 (if Peak)</span>
+                </div>
+              </button>
+
+              <!-- Action 2: Top-Up BESS -->
+              <button onclick="executeAction(2)" id="btnAct2" class="glass-card-interactive group text-left p-3.5 rounded-2xl bg-dark-900/90 border border-dark-700/80 hover:border-amberGlow-500 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-black text-amberGlow-400 flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-amberGlow-500/20 flex items-center justify-center text-[10px] font-mono">2</span>
+                    Top-Up BESS
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">≤ 30 kW</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-snug">Store power in BESS. 6x bonus during off-peak.</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-dark-800 pt-1.5">
+                  <span>Strategy:</span>
+                  <span id="bonusAct2" class="font-mono text-emerald-400 font-semibold">+₹60 Profit</span>
+                </div>
+              </button>
+
+              <!-- Action 3: Hybrid Charge -->
+              <button onclick="executeAction(3)" id="btnAct3" class="glass-card-interactive group text-left p-3.5 rounded-2xl bg-dark-900/90 border border-dark-700/80 hover:border-violetGlow-500 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-black text-violetGlow-400 flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-violetGlow-500/20 flex items-center justify-center text-[10px] font-mono">3</span>
+                    Hybrid Turbo
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">40 kW</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-snug">Dual feed: 20 Grid + 20 BESS. Fast completion!</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-dark-800 pt-1.5">
+                  <span>Turnaround:</span>
+                  <span class="font-mono text-violetGlow-300 font-semibold">+₹200 on Done</span>
+                </div>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- SIMULATION ENGINE CONTROLS -->
+          <div class="mt-5 border-t border-dark-700/70 pt-4">
+            
+            <div class="flex items-center justify-between mb-3 text-xs text-slate-400">
+              
+              <!-- Agent Policy Selector -->
+              <div class="flex items-center space-x-2">
+                <span class="font-semibold text-slate-300">Agent:</span>
+                <select id="selAgentType" class="bg-dark-800 border border-dark-700 rounded-lg px-2 py-1 text-white text-xs font-medium focus:border-brand-500">
+                  <option value="heuristic" selected>Optimal RL Heuristic</option>
+                  <option value="greedy">Greedy Arbitrage</option>
+                  <option value="random">Random Exploration</option>
+                </select>
+              </div>
+
+              <!-- Speed Controller -->
+              <div class="flex items-center space-x-1.5">
+                <span>Speed:</span>
+                <select id="selSpeed" onchange="updateSimSpeed()" class="bg-dark-800 border border-dark-700 rounded-lg px-2 py-1 text-white text-xs font-medium focus:border-brand-500">
+                  <option value="1000">1x (1s)</option>
+                  <option value="400" selected>2x (400ms)</option>
+                  <option value="120">5x (120ms)</option>
+                  <option value="30">Max (30ms)</option>
+                </select>
+              </div>
+
+            </div>
+
+            <!-- Controller Buttons -->
+            <div class="flex items-center space-x-2">
+              <button id="btnAutoPlay" onclick="toggleAutoPlay()" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-500 hover:to-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-600/30 transition">
+                <i data-lucide="play" id="iconPlay" class="w-4 h-4 fill-white"></i>
+                <span id="textPlay">Auto-Run (AI Agent)</span>
+              </button>
+              <button onclick="stepAI()" title="Step Forward 1 Action [Space]" class="px-3.5 py-3 rounded-2xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
+                <i data-lucide="step-forward" class="w-4 h-4"></i> Step
+              </button>
+              <button onclick="resetEpisode()" title="Restart Episode [R]" class="p-3 rounded-2xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-slate-300 transition">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- REWARD DECOMPOSITION LIVE BANNER -->
+      <div id="lastRewardBanner" class="glass-card rounded-2xl p-4 shadow-md">
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="calculator" class="w-4 h-4 text-brand-400"></i> Step Reward Decomposition:
+            </span>
+            <span id="formulaText" class="font-mono text-slate-400">Ready to simulate. Execute an action or run agent.</span>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center gap-1 text-emerald-400 font-mono font-bold">
+              <span>Step Delta:</span>
+              <span id="formulaStepReward">₹0.00</span>
+            </div>
+            <div class="flex items-center gap-1 text-slate-300 font-mono">
+              <span>Total Profit:</span>
+              <span id="formulaCumReward" class="text-white font-bold">₹0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS CHARTS SECTION (3 SYNCED CHARTS) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Chart 1: Profit / Reward Curve (6 Cols) -->
+        <div class="lg:col-span-6 glass-card rounded-3xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="line-chart" class="w-4 h-4 text-brand-400"></i>
+              <h3 class="text-sm font-bold text-white">Episode Profit & Reward Curve</h3>
+            </div>
+            <span class="text-xs text-brand-400 font-mono font-bold">Goal: > ₹1,000</span>
+          </div>
+          <div class="w-full h-64">
+            <canvas id="chartReward"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: BESS Level & Tariff History (4 Cols) -->
+        <div class="lg:col-span-4 glass-card rounded-3xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="gauge" class="w-4 h-4 text-cyanGlow-400"></i>
+              <h3 class="text-sm font-bold text-white">BESS Reserve vs Tariff</h3>
+            </div>
+            <span class="text-xs text-slate-400 font-mono">0 - 1000 kWh</span>
+          </div>
+          <div class="w-full h-64">
+            <canvas id="chartBess"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 3: Energy Source Distribution Doughnut (2 Cols) -->
+        <div class="lg:col-span-2 glass-card rounded-3xl p-5 shadow-xl flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-white">Power Mix</h3>
+            <i data-lucide="pie-chart" class="w-3.5 h-3.5 text-violetGlow-400"></i>
+          </div>
+          <div class="w-full h-44 relative flex items-center justify-center">
+            <canvas id="chartMix"></canvas>
+          </div>
+          <div class="text-[10px] text-slate-400 space-y-1 mt-2 font-mono">
+            <div class="flex justify-between"><span class="text-brand-400">BESS Clean</span><span id="mixBessPct">50%</span></div>
+            <div class="flex justify-between"><span class="text-cyanGlow-400">Grid Direct</span><span id="mixGridPct">30%</span></div>
+            <div class="flex justify-between"><span class="text-amberGlow-400">Top-Up</span><span id="mixTopupPct">20%</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- STEP TELEMETRY HISTORY TABLE -->
+      <div class="glass-card rounded-3xl p-5 shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-dark-700/60 pb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="list-ordered" class="w-4 h-4 text-violetGlow-400"></i>
+            <h3 class="text-sm font-bold text-white">Live Step Telemetry Log</h3>
+            <span id="telemetryCountBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-dark-800 text-slate-400">0 steps</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="exportTelemetryCSV()" class="px-3 py-1.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+              <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i> Export CSV
+            </button>
+            <button onclick="clearHistoryLog()" class="px-3 py-1.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-xs font-semibold text-slate-400 hover:text-white transition">
+              Clear Log
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-64 overflow-y-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="text-slate-400 bg-dark-900/90 sticky top-0 border-b border-dark-800">
+              <tr>
+                <th class="p-2.5">Step</th>
+                <th class="p-2.5">Time</th>
+                <th class="p-2.5">Action Chosen</th>
+                <th class="p-2.5">Tariff</th>
+                <th class="p-2.5">BESS</th>
+                <th class="p-2.5">EV Need</th>
+                <th class="p-2.5">Step Reward</th>
+                <th class="p-2.5">Cumulative</th>
+                <th class="p-2.5">Mathematical Breakdown</th>
+              </tr>
+            </thead>
+            <tbody id="telemetryTableBody" class="divide-y divide-dark-800/60 text-slate-300">
+              <tr>
+                <td colspan="9" class="p-6 text-center text-slate-500">No steps recorded yet. Execute an action or click Auto-Run.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= VIEW 2: HACKATHON BENCHMARKS & EVALUATION ================= -->
+    <div id="viewTasks" class="hidden space-y-6">
+
+      <!-- Header Banner -->
+      <div class="bg-gradient-to-r from-dark-900 via-dark-850 to-dark-900 border border-brand-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400 text-xs font-bold border border-brand-500/30">Meta Hackathon Evaluator</span>
+              <span class="text-slate-400 text-xs font-mono">Official OpenEnv Validator Suite</span>
+            </div>
+            <h2 class="text-2xl font-display font-black text-white mt-2">Safe Station Benchmark Arena</h2>
+            <p class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+              Executes the operational tasks declared in <code class="text-brand-400 font-mono">metaenv.yaml</code>. Evaluates peak-shaving efficacy, off-peak top-up arbitrage, and EV turnaround while penalizing grid stress and BESS depletion.
+            </p>
+          </div>
+          <button onclick="runAllBenchmarks()" id="btnRunBenchmark" class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-600 via-cyanGlow-600 to-violetGlow-600 hover:from-brand-500 hover:to-cyanGlow-500 text-white font-black text-sm shadow-xl shadow-brand-500/25 flex items-center gap-2.5 transition shrink-0">
+            <i data-lucide="play-circle" class="w-5 h-5"></i> Run Full Benchmark Suite
+          </button>
+        </div>
+      </div>
+
+      <!-- Overall Score Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        
+        <div class="glass-card rounded-2xl p-5 text-center">
+          <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Official Leaderboard Score</div>
+          <div id="benchFinalScore" class="text-3xl font-display font-black text-brand-400 mt-2 font-mono">-- / 1.00</div>
+          <div class="text-[11px] text-slate-400 mt-1">Average across all tasks</div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 text-center">
+          <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Task 1: Easy Start</div>
+          <div id="benchScoreEasy" class="text-2xl font-display font-black text-white mt-2 font-mono">--</div>
+          <div class="text-[11px] text-slate-400 mt-1">Grader v1.0 (Max ₹1000)</div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 text-center">
+          <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Task 2: Medium Operations</div>
+          <div id="benchScoreMed" class="text-2xl font-display font-black text-white mt-2 font-mono">--</div>
+          <div class="text-[11px] text-slate-400 mt-1">Peak-Shaving Focus (Max ₹2000)</div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 text-center">
+          <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Task 3: Hard Constraints</div>
+          <div id="benchScoreHard" class="text-2xl font-display font-black text-white mt-2 font-mono">--</div>
+          <div class="text-[11px] text-slate-400 mt-1">Low-BESS Stress (Max ₹2500)</div>
+        </div>
+
+      </div>
+
+      <!-- 3 Tasks Detailed Breakdown Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- Task 1 Card -->
+        <div class="glass-card rounded-3xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">EASY START</span>
+              <span class="text-xs text-slate-400 font-mono">easy_start</span>
+            </div>
+            <h3 class="font-display font-extrabold text-white text-base">Task 1: Easy Start</h3>
+            <p class="text-xs text-slate-300 mt-2 leading-relaxed">
+              Initial State: <strong>10:00 AM (₹8/kWh), BESS: 50 kWh, Car Present (Need: 40 kWh)</strong>.
+              Goal: Successfully charge cars with steady grid parameters.
+            </p>
+          </div>
+          <div class="mt-6 border-t border-dark-700/60 pt-4">
+            <button onclick="runSingleTask('easy_start')" class="w-full py-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-xs font-bold text-slate-200 transition">
+              Simulate Task 1
+            </button>
+          </div>
+        </div>
+
+        <!-- Task 2 Card -->
+        <div class="glass-card rounded-3xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amberGlow-500/15 text-amberGlow-400 border border-amberGlow-500/30">MEDIUM OPS</span>
+              <span class="text-xs text-slate-400 font-mono">medium_ops</span>
+            </div>
+            <h3 class="font-display font-extrabold text-white text-base">Task 2: Medium Operations</h3>
+            <p class="text-xs text-slate-300 mt-2 leading-relaxed">
+              Initial State: <strong>19:00 PM (₹15/kWh Peak), BESS: 80 kWh, Car Present (Need: 30 kWh)</strong>.
+              Goal: Manage high peak-pricing hours while leveraging BESS peak shaving (+₹50 bonus).
+            </p>
+          </div>
+          <div class="mt-6 border-t border-dark-700/60 pt-4">
+            <button onclick="runSingleTask('medium_ops')" class="w-full py-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-xs font-bold text-slate-200 transition">
+              Simulate Task 2
+            </button>
+          </div>
+        </div>
+
+        <!-- Task 3 Card -->
+        <div class="glass-card rounded-3xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-crimsonGlow-500/15 text-crimsonGlow-400 border border-crimsonGlow-500/30">HARD CONSTRAINTS</span>
+              <span class="text-xs text-slate-400 font-mono">hard_constraints</span>
+            </div>
+            <h3 class="font-display font-extrabold text-white text-base">Task 3: Hard Constraints</h3>
+            <p class="text-xs text-slate-300 mt-2 leading-relaxed">
+              Initial State: <strong>03:00 AM (₹4/kWh Off-peak), BESS: 10 kWh (Critical Floor!), Car Absent</strong>.
+              Goal: Execute critical off-peak BESS top-up (+₹60 arbitrage profit) before morning demand surge.
+            </p>
+          </div>
+          <div class="mt-6 border-t border-dark-700/60 pt-4">
+            <button onclick="runSingleTask('hard_constraints')" class="w-full py-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-xs font-bold text-slate-200 transition">
+              Simulate Task 3
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Benchmark Log Stream -->
+      <div class="glass-card rounded-3xl p-5">
+        <div class="flex items-center justify-between mb-3 border-b border-dark-700/60 pb-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="terminal" class="w-4 h-4 text-brand-400"></i> Benchmark Execution Stream
+          </h3>
+          <span class="text-xs text-slate-400 font-mono">Meta OpenEnv Format</span>
+        </div>
+        <div id="benchmarkConsole" class="bg-dark-950 p-4 rounded-2xl border border-dark-800 font-mono text-xs text-slate-300 h-52 overflow-y-auto space-y-1">
+          <div class="text-slate-500">// Ready to run evaluation. Click "Run Full Benchmark Suite" above.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= VIEW 3: RL MATH & SYSTEM ARCHITECTURE ================= -->
+    <div id="viewDocs" class="hidden space-y-6">
+
+      <div class="glass-card rounded-3xl p-6 shadow-xl">
+        <h2 class="text-xl font-display font-black text-white flex items-center gap-2.5">
+          <i data-lucide="cpu" class="w-6 h-6 text-brand-400"></i> SafeStation Reinforcement Learning MDP Formulation
+        </h2>
+        <p class="text-xs text-slate-300 mt-2 leading-relaxed">
+          The Safe Station Environment is a discrete-time Markov Decision Process (MDP) designed for Meta's PyTorch OpenEnv Hackathon 2026. The agent manages an intelligent dual-source commercial charging depot balancing real-time wholesale grid electricity prices, electrochemical battery degradation limits, and EV driver satisfaction.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+
+          <!-- MDP Specification -->
+          <div class="bg-dark-900/80 p-5 rounded-2xl border border-dark-700/80">
+            <h3 class="font-display font-black text-sm text-cyanGlow-400 mb-3 uppercase tracking-wider">1. State & Action Formulations</h3>
+            <div class="space-y-3 text-xs text-slate-300">
+              <div>
+                <strong class="text-white">State Vector (Observation):</strong>
+                <ul class="list-disc list-inside ml-2 mt-1 space-y-1 text-slate-400 font-mono">
+                  <li><code>hour</code>: [0 - 23] (time of day)</li>
+                  <li><code>grid_price</code>: ₹4.0 (off-peak), ₹8.0 (normal), ₹15.0 (peak)</li>
+                  <li><code>station_battery_level</code>: [0 - 1000 kWh] BESS charge</li>
+                  <li><code>car_present</code>: [0 or 1] EV bay status</li>
+                  <li><code>car_battery_need</code>: [0 - 1000 kWh] energy required</li>
+                </ul>
+              </div>
+              <div class="pt-2 border-t border-dark-800">
+                <strong class="text-white">Action Space (Discrete {0, 1, 2, 3}):</strong>
+                <ul class="list-disc list-inside ml-2 mt-1 space-y-1 text-slate-400 font-mono">
+                  <li><code>Action 0 (Grid)</code>: Draw 20 kW from Grid to Car</li>
+                  <li><code>Action 1 (BESS)</code>: Discharge 20 kW from BESS to Car</li>
+                  <li><code>Action 2 (Top-up)</code>: Draw ≤ 30 kW from Grid to BESS</li>
+                  <li><code>Action 3 (Hybrid)</code>: Dual 20 kW Grid + 20 kW BESS (40 kW total)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reward & Penalty Logic -->
+          <div class="bg-dark-900/80 p-5 rounded-2xl border border-dark-700/80">
+            <h3 class="font-display font-black text-sm text-brand-400 mb-3 uppercase tracking-wider">2. Reward & Constraint System</h3>
+            <div class="space-y-3 text-xs text-slate-300">
+              <div>
+                <strong class="text-white">Reward Incentives:</strong>
+                <ul class="list-disc list-inside ml-2 mt-1 space-y-1 text-slate-400 font-mono">
+                  <li><span class="text-emerald-400 font-bold">+200.0</span>: Complete EV charge fulfillment</li>
+                  <li><span class="text-brand-400 font-bold">+50.0</span>: Peak-Shaving bonus (BESS used when grid > ₹10)</li>
+                  <li><span class="text-cyanGlow-400 font-bold">+(Energy × 6.0)</span>: Strategic off-peak storage bonus</li>
+                </ul>
+              </div>
+              <div class="pt-2 border-t border-dark-800">
+                <strong class="text-white">Operational Penalties:</strong>
+                <ul class="list-disc list-inside ml-2 mt-1 space-y-1 text-slate-400 font-mono">
+                  <li><span class="text-amberGlow-400">-(Energy × Price)</span>: Direct grid operational expense</li>
+                  <li><span class="text-crimsonGlow-400">-5.0 / step</span>: Car wait penalty while incomplete</li>
+                  <li><span class="text-rose-500 font-bold">-500.0</span>: CRITICAL FAILURE if BESS reaches 0 floor</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================= CUSTOM SCENARIO INJECTOR MODAL ================= -->
+  <div id="modalScenario" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-lg w-full rounded-3xl p-6 border border-dark-700 shadow-2xl relative">
+      
+      <div class="flex items-center justify-between border-b border-dark-700/60 pb-3 mb-4">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="sliders" class="w-5 h-5 text-cyanGlow-400"></i>
+          <h3 class="font-display font-extrabold text-white text-base">Custom Scenario Injector</h3>
+        </div>
+        <button onclick="closeScenarioModal()" class="p-1 rounded-lg text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div class="mb-5">
+        <label class="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2">Operational Presets</label>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="applyPreset('peak_crisis')" class="p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-left transition">
+            <div class="font-bold text-crimsonGlow-400">🌆 Peak Crisis</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">19:00, ₹15/kWh, Car Need 40</div>
+          </button>
+          <button onclick="applyPreset('midnight_arb')" class="p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-left transition">
+            <div class="font-bold text-emerald-400">🌙 Midnight Arbitrage</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">02:00, ₹4/kWh, BESS 20</div>
+          </button>
+          <button onclick="applyPreset('bess_danger')" class="p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-left transition">
+            <div class="font-bold text-amberGlow-400">⚠️ BESS Floor Guard</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">12:00, BESS 5 kWh, Car Need 30</div>
+          </button>
+          <button onclick="applyPreset('supercharge')" class="p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-left transition">
+            <div class="font-bold text-violetGlow-400">🏎️ Fast Turnaround</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">15:00, BESS 90, Car Need 60</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom Sliders -->
+      <div class="space-y-4 text-xs font-medium">
+        <div>
+          <div class="flex justify-between text-slate-300 mb-1">
+            <span>Hour of Day [0 - 23]:</span>
+            <span id="labelInjHour" class="font-mono text-cyanGlow-400 font-bold">10:00</span>
+          </div>
+          <input type="range" id="sliderInjHour" min="0" max="23" value="10" oninput="updateInjectorLabels()" class="w-full accent-cyanGlow-500">
+        </div>
+
+        <div>
+          <div class="flex justify-between text-slate-300 mb-1">
+            <span>Station BESS Reserve [0 - 1000 kWh]:</span>
+            <span id="labelInjBess" class="font-mono text-brand-400 font-bold">50.0 kWh</span>
+          </div>
+          <input type="range" id="sliderInjBess" min="0" max="1000" value="500" oninput="updateInjectorLabels()" class="w-full accent-brand-500">
+        </div>
+
+        <div class="flex items-center justify-between p-3 rounded-xl bg-dark-850 border border-dark-700">
+          <span class="text-slate-300">Vehicle Present in Bay:</span>
+          <input type="checkbox" id="checkInjCar" checked onchange="updateInjectorLabels()" class="w-4 h-4 accent-brand-500">
+        </div>
+
+        <div>
+          <div class="flex justify-between text-slate-300 mb-1">
+            <span>EV Energy Demand [10 - 80 kWh]:</span>
+            <span id="labelInjNeed" class="font-mono text-violetGlow-400 font-bold">40.0 kWh</span>
+          </div>
+          <input type="range" id="sliderInjNeed" min="10" max="80" value="40" oninput="updateInjectorLabels()" class="w-full accent-violetGlow-500">
+        </div>
+      </div>
+
+      <!-- Submit Inject Button -->
+      <div class="mt-6 flex space-x-3">
+        <button onclick="closeScenarioModal()" class="flex-1 py-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-xs font-bold text-slate-300 transition">
+          Cancel
+        </button>
+        <button onclick="commitInjectedScenario()" class="flex-1 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-xs shadow-lg shadow-brand-600/30 transition">
+          Inject State & Reset
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT ENGINE & LOGIC -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Global Environment & UI State
+    let currentState = {
+      hour: 0,
+      grid_price: 4.0,
+      station_battery_level: 1000.0,
+      car_present: 0,
+      car_battery_need: 0.0,
+      step_count: 0,
+      total_reward: 0.0,
+      cars_served: 0,
+      peak_bonuses: 0,
+      grid_costs: 0.0,
+      topup_profits: 0.0,
+      done: false
+    };
+
+    let energyMix = {
+      bess: 0.0,
+      grid: 0.0,
+      topup: 0.0
+    };
+
+    let isAutoPlaying = false;
+    let autoPlayTimer = null;
+    let telemetryHistory = [];
+    let isAudioEnabled = true;
+
+    // Web Audio Synthesizer Context
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      if (!isAudioEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+        if (type === 'step') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(260, now + 0.08);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'bonus') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(660, now + 0.08);
+          osc.frequency.setValueAtTime(880, now + 0.16);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if (type === 'danger') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.linearRampToValueAtTime(140, now + 0.2);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        }
+      } catch (e) {
+        // Audio policy ignore
+      }
+    }
+
+    function toggleAudio() {
+      isAudioEnabled = !isAudioEnabled;
+      const icon = document.getElementById('iconAudio');
+      if (isAudioEnabled) {
+        icon.setAttribute('data-lucide', 'volume-2');
+        icon.parentElement.classList.remove('text-slate-600');
+        icon.parentElement.classList.add('text-slate-400');
+      } else {
+        icon.setAttribute('data-lucide', 'volume-x');
+        icon.parentElement.classList.remove('text-slate-400');
+        icon.parentElement.classList.add('text-slate-600');
+      }
+      lucide.createIcons();
+    }
+
+    // Chart.js Instances
+    let chartRewardInstance = null;
+    let chartBessInstance = null;
+    let chartMixInstance = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      fetchState();
+      setupKeyboardShortcuts();
+    });
+
+    // Keyboard Navigation
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (e.key === '0') executeAction(0);
+        else if (e.key === '1') executeAction(1);
+        else if (e.key === '2') executeAction(2);
+        else if (e.key === '3') executeAction(3);
+        else if (e.key === ' ') { e.preventDefault(); stepAI(); }
+        else if (e.key.toLowerCase() === 'p') toggleAutoPlay();
+        else if (e.key.toLowerCase() === 'r') resetEpisode();
+        else if (e.key.toLowerCase() === 'm') toggleAudio();
+      });
+    }
+
+    // Initialize Chart.js
+    function initCharts() {
+      // 1. Reward Chart
+      const ctxReward = document.getElementById('chartReward').getContext('2d');
+      const gradReward = ctxReward.createLinearGradient(0, 0, 0, 240);
+      gradReward.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+      gradReward.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+      chartRewardInstance = new Chart(ctxReward, {
+        type: 'line',
+        data: {
+          labels: [0],
+          datasets: [{
+            label: 'Cumulative Profit (₹)',
+            data: [0],
+            borderColor: '#10b981',
+            backgroundColor: gradReward,
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2.5,
+            pointRadius: 2,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              title: { display: true, text: 'Episode Step', color: '#64748b', font: { size: 10, family: 'JetBrains Mono' } },
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { size: 10, family: 'JetBrains Mono' } }
+            },
+            y: {
+              title: { display: true, text: 'Net Profit (₹)', color: '#64748b', font: { size: 10, family: 'JetBrains Mono' } },
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { size: 10, family: 'JetBrains Mono' } }
+            }
+          }
+        }
+      });
+
+      // 2. BESS & Tariff Chart
+      const ctxBess = document.getElementById('chartBess').getContext('2d');
+      chartBessInstance = new Chart(ctxBess, {
+        type: 'line',
+        data: {
+          labels: [0],
+          datasets: [
+            {
+              label: 'BESS (kWh)',
+              data: [1000],
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.1)',
+              fill: true,
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 1,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Tariff (₹)',
+              data: [4.0],
+              borderColor: '#f59e0b',
+              borderDash: [4, 4],
+              borderWidth: 1.5,
+              pointRadius: 0,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: { color: '#94a3b8', font: { size: 10, family: 'JetBrains Mono' } }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { size: 10, family: 'JetBrains Mono' } }
+            },
+            y: {
+              min: 0,
+              max: 100,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#38bdf8', font: { size: 10, family: 'JetBrains Mono' } }
+            },
+            y1: {
+              position: 'right',
+              min: 0,
+              max: 20,
+              grid: { display: false },
+              ticks: { color: '#f59e0b', font: { size: 10, family: 'JetBrains Mono' } }
+            }
+          }
+        }
+      });
+
+      // 3. Power Mix Doughnut Chart
+      const ctxMix = document.getElementById('chartMix').getContext('2d');
+      chartMixInstance = new Chart(ctxMix, {
+        type: 'doughnut',
+        data: {
+          labels: ['BESS', 'Grid', 'Top-Up'],
+          datasets: [{
+            data: [1, 1, 1],
+            backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b'],
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // Tab Navigation
+    function switchView(viewName) {
+      document.getElementById('viewSim').classList.toggle('hidden', viewName !== 'sim');
+      document.getElementById('viewTasks').classList.toggle('hidden', viewName !== 'tasks');
+      document.getElementById('viewDocs').classList.toggle('hidden', viewName !== 'docs');
+
+      const tabs = ['btnTabSim', 'btnTabTasks', 'btnTabDocs'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(t);
+        if ((viewName === 'sim' && t === 'btnTabSim') || 
+            (viewName === 'tasks' && t === 'btnTabTasks') || 
+            (viewName === 'docs' && t === 'btnTabDocs')) {
+          btn.className = 'px-3 py-1.5 rounded-lg transition bg-brand-600 text-white shadow-md shadow-brand-600/30 flex items-center gap-1.5';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1.5';
+        }
+      });
+    }
+
+    // API: Fetch State
+    async function fetchState() {
+      try {
+        const res = await fetch('/api/state');
+        if (res.ok) {
+          const data = await res.json();
+          updateUIWithState(data);
+        } else {
+          resetEpisode();
+        }
+      } catch (e) {
+        resetEpisode();
+      }
+    }
+
+    // API: Reset Episode
+    async function resetEpisode(customConfig = null) {
+      pauseAutoPlay();
+      try {
+        const opts = customConfig ? {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(customConfig)
+        } : { method: 'POST' };
+
+        const res = await fetch('/api/reset', opts);
+        const data = await res.json();
+        
+        currentState.step_count = 0;
+        currentState.total_reward = 0.0;
+        currentState.cars_served = 0;
+        currentState.peak_bonuses = 0;
+        currentState.grid_costs = 0.0;
+        currentState.topup_profits = 0.0;
+        currentState.done = false;
+
+        energyMix = { bess: 0.1, grid: 0.1, topup: 0.1 };
+
+        // Reset Charts
+        if (chartRewardInstance) {
+          chartRewardInstance.data.labels = [0];
+          chartRewardInstance.data.datasets[0].data = [0];
+          chartRewardInstance.update();
+        }
+        if (chartBessInstance) {
+          chartBessInstance.data.labels = [0];
+          chartBessInstance.data.datasets[0].data = [data.station_battery_level || 1000];
+          chartBessInstance.data.datasets[1].data = [data.grid_price || 4.0];
+          chartBessInstance.update();
+        }
+        updatePowerMixChart();
+
+        telemetryHistory = [];
+        renderTelemetryTable();
+        updateUIWithState(data);
+
+        document.getElementById('formulaText').textContent = 'Environment initialized / fresh episode started.';
+        document.getElementById('formulaStepReward').textContent = '₹0.00';
+        document.getElementById('formulaCumReward').textContent = '₹0.00';
+      } catch (err) {
+        console.error('Failed to reset:', err);
+      }
+    }
+
+    // API: Step Action
+    async function executeAction(actionId) {
+      if (currentState.done) {
+        playSound('danger');
+        alert('Episode reached termination. Click Reset [R] to restart.');
+        return;
+      }
+
+      animatePowerFlow(actionId);
+      playSound('step');
+
+      try {
+        const res = await fetch('/api/step', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: actionId })
+        });
+        const data = await res.json();
+        
+        currentState.step_count++;
+        currentState.total_reward += (data.reward || 0);
+
+        if (data.breakdown) {
+          if (data.breakdown.grid_cost > 0) currentState.grid_costs += data.breakdown.grid_cost;
+          if (data.breakdown.peak_bonus > 0) {
+            currentState.peak_bonuses++;
+            playSound('bonus');
+          }
+          if (data.breakdown.car_completed) {
+            currentState.cars_served++;
+            playSound('bonus');
+            confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+          }
+          if (data.breakdown.topup_bonus > 0) {
+            currentState.topup_profits += data.breakdown.topup_bonus;
+          }
+
+          // Accumulate Power Mix
+          if (data.breakdown.energy_batt > 0) energyMix.bess += data.breakdown.energy_batt;
+          if (data.breakdown.energy_grid > 0 && actionId !== 2) energyMix.grid += data.breakdown.energy_grid;
+          if (actionId === 2) energyMix.topup += 30;
+          updatePowerMixChart();
+        }
+
+        currentState.done = data.done;
+
+        // Record Telemetry Entry
+        const logEntry = {
+          step: currentState.step_count,
+          time: formatHour(data.observation.hour, currentState.step_count),
+          actionId: actionId,
+          actionName: getActionName(actionId),
+          tariff: data.observation.grid_price,
+          bess: data.observation.station_battery_level,
+          carNeed: data.observation.car_battery_need,
+          reward: data.reward,
+          cumulative: currentState.total_reward,
+          breakdown: data.breakdown
+        };
+        telemetryHistory.unshift(logEntry);
+        renderTelemetryTable();
+
+        // Update Charts
+        if (chartRewardInstance) {
+          chartRewardInstance.data.labels.push(currentState.step_count);
+          chartRewardInstance.data.datasets[0].data.push(currentState.total_reward);
+          chartRewardInstance.update('none');
+        }
+        if (chartBessInstance) {
+          chartBessInstance.data.labels.push(currentState.step_count);
+          chartBessInstance.data.datasets[0].data.push(data.observation.station_battery_level);
+          chartBessInstance.data.datasets[1].data.push(data.observation.grid_price);
+          chartBessInstance.update('none');
+        }
+
+        updateUIWithState(data.observation, data.reward, data.breakdown);
+
+        if (currentState.done) {
+          pauseAutoPlay();
+          if (data.observation.station_battery_level <= 0) {
+            playSound('danger');
+            alert('CRITICAL FAILURE! BESS reached 0 floor (-500 penalty). Episode terminated.');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to step action:', err);
+      }
+    }
+
+    // Animate Digital Twin Power Flow
+    function animatePowerFlow(actionId) {
+      const lineGB = document.getElementById('lineGridBess');
+      const lineGE = document.getElementById('lineGridEv');
+      const lineBE = document.getElementById('lineBessEv');
+      const lineHF = document.getElementById('lineHybridFlow');
+      const centerPill = document.getElementById('centerFlowText');
+      const flowBadge = document.getElementById('flowStatusBadge');
+      const corePulse = document.getElementById('coreInverterPulse');
+      const inverterMode = document.getElementById('schematicInverterMode');
+
+      // Hide all dynamic lines first
+      [lineGB, lineGE, lineBE, lineHF].forEach(l => {
+        l.setAttribute('class', 'opacity-0 transition-opacity duration-300');
+      });
+
+      if (actionId === 0) {
+        // Grid Direct
+        lineGE.setAttribute('class', 'flow-active flow-grid opacity-100');
+        centerPill.textContent = 'Active: Grid Passthrough (20kW) ➔ EV';
+        flowBadge.textContent = 'Grid Direct Mode';
+        flowBadge.className = 'text-xs px-3 py-1 rounded-full bg-cyanGlow-500/15 text-cyanGlow-400 border border-cyanGlow-500/30 font-mono font-bold';
+        corePulse.setAttribute('fill', '#0ea5e9');
+        inverterMode.textContent = 'Grid Direct (20 kW)';
+      } else if (actionId === 1) {
+        // BESS Peak-Shaving
+        lineBE.setAttribute('class', 'flow-active flow-bess opacity-100');
+        centerPill.textContent = 'Active: Clean BESS (20kW) ➔ EV';
+        flowBadge.textContent = 'BESS Peak-Shave Mode';
+        flowBadge.className = 'text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono font-bold';
+        corePulse.setAttribute('fill', '#10b981');
+        inverterMode.textContent = 'BESS Discharge (20 kW)';
+      } else if (actionId === 2) {
+        // Storage Top-Up
+        lineGB.setAttribute('class', 'flow-active flow-topup opacity-100');
+        centerPill.textContent = 'Active: Off-Peak Grid (30kW) ➔ BESS Vault';
+        flowBadge.textContent = 'Arbitrage Top-Up Mode';
+        flowBadge.className = 'text-xs px-3 py-1 rounded-full bg-amberGlow-500/15 text-amberGlow-400 border border-amberGlow-500/30 font-mono font-bold';
+        corePulse.setAttribute('fill', '#f59e0b');
+        inverterMode.textContent = 'Grid Ingestion (30 kW)';
+      } else if (actionId === 3) {
+        // Hybrid Dual Turbo
+        lineHF.setAttribute('class', 'flow-active flow-hybrid opacity-100');
+        lineBE.setAttribute('class', 'flow-active flow-hybrid opacity-100');
+        centerPill.textContent = 'Active: Dual Turbo (20kW Grid + 20kW BESS = 40kW) ➔ EV';
+        flowBadge.textContent = 'Hybrid Turbo Fast-Charge';
+        flowBadge.className = 'text-xs px-3 py-1 rounded-full bg-violetGlow-500/15 text-violetGlow-400 border border-violetGlow-500/30 font-mono font-bold';
+        corePulse.setAttribute('fill', '#a855f7');
+        inverterMode.textContent = 'Dual Hybrid Turbo (40 kW)';
+      }
+    }
+
+    // Update Power Mix Doughnut
+    function updatePowerMixChart() {
+      if (!chartMixInstance) return;
+      const total = energyMix.bess + energyMix.grid + energyMix.topup;
+      if (total > 0) {
+        const bPct = Math.round((energyMix.bess / total) * 100);
+        const gPct = Math.round((energyMix.grid / total) * 100);
+        const tPct = 100 - bPct - gPct;
+        document.getElementById('mixBessPct').textContent = `${bPct}%`;
+        document.getElementById('mixGridPct').textContent = `${gPct}%`;
+        document.getElementById('mixTopupPct').textContent = `${tPct}%`;
+        chartMixInstance.data.datasets[0].data = [energyMix.bess, energyMix.grid, energyMix.topup];
+        chartMixInstance.update('none');
+      }
+    }
+
+    // Update UI Elements
+    function updateUIWithState(obs, lastStepReward = null, breakdown = null) {
+      currentState.hour = obs.hour;
+      currentState.grid_price = obs.grid_price;
+      currentState.station_battery_level = obs.station_battery_level;
+      currentState.car_present = obs.car_present;
+      currentState.car_battery_need = obs.car_battery_need;
+
+      // 1. Time & Daylight Phase
+      const timeStr = formatHour(obs.hour, currentState.step_count);
+      document.getElementById('valTimeDisplay').textContent = timeStr;
+      document.getElementById('valQuarterDisplay').textContent = `Step ${currentState.step_count}/96`;
+      const epPct = Math.min(100, Math.round((currentState.step_count / 96) * 100));
+      document.getElementById('valEpisodePct').textContent = `${epPct}%`;
+      document.getElementById('barEpisodeProgress').style.width = `${epPct}%`;
+      document.getElementById('ctrlStepBadge').textContent = currentState.step_count;
+
+      const dayBadge = document.getElementById('dayPhaseBadge');
+      if (obs.hour >= 0 && obs.hour <= 6) dayBadge.textContent = 'Off-Peak Night';
+      else if (obs.hour >= 7 && obs.hour <= 11) dayBadge.textContent = 'Morning Surge';
+      else if (obs.hour >= 12 && obs.hour <= 17) dayBadge.textContent = 'Afternoon Standard';
+      else dayBadge.textContent = 'Evening Peak';
+
+      // 2. Grid Tariff
+      document.getElementById('valGridPrice').textContent = `₹${obs.grid_price.toFixed(1)}`;
+      document.getElementById('schematicGridRate').textContent = `₹${obs.grid_price.toFixed(1)} / kWh`;
+      
+      const isPeak = (obs.hour >= 18 && obs.hour <= 22);
+      const isOffPeak = (obs.hour >= 0 && obs.hour <= 6);
+      
+      const badgeTariff = document.getElementById('badgeTariffTier');
+      const schemPeak = document.getElementById('schematicPeakTag');
+      const multTariff = document.getElementById('valTariffMult');
+      const barTariff = document.getElementById('barTariffTier');
+
+      if (isPeak) {
+        badgeTariff.textContent = 'PEAK TARIFF';
+        badgeTariff.className = 'text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-crimsonGlow-500/20 text-crimsonGlow-400 border border-crimsonGlow-500/40 glow-crimson';
+        schemPeak.textContent = 'Peak Tier (₹15)';
+        schemPeak.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-crimsonGlow-500/20 text-crimsonGlow-400 font-bold border border-crimsonGlow-500/30';
+        multTariff.textContent = 'Peak Shave Bonus';
+        multTariff.className = 'font-mono text-crimsonGlow-400 font-bold';
+        barTariff.style.width = '100%';
+        barTariff.className = 'bg-crimsonGlow-500 h-full transition-all duration-300';
+      } else if (isOffPeak) {
+        badgeTariff.textContent = 'OFF-PEAK RATE';
+        badgeTariff.className = 'text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+        schemPeak.textContent = 'Off-Peak (₹4)';
+        schemPeak.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20';
+        multTariff.textContent = '6x Top-Up Profit';
+        multTariff.className = 'font-mono text-emerald-400 font-bold';
+        barTariff.style.width = '25%';
+        barTariff.className = 'bg-emerald-500 h-full transition-all duration-300';
+      } else {
+        badgeTariff.textContent = 'STANDARD RATE';
+        badgeTariff.className = 'text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-cyanGlow-500/15 text-cyanGlow-400 border border-cyanGlow-500/30';
+        schemPeak.textContent = 'Normal (₹8)';
+        schemPeak.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyanGlow-500/10 text-cyanGlow-400 font-bold border border-cyanGlow-500/20';
+        multTariff.textContent = 'Normal Tariff';
+        multTariff.className = 'font-mono text-cyanGlow-400 font-bold';
+        barTariff.style.width = '55%';
+        barTariff.className = 'bg-cyanGlow-500 h-full transition-all duration-300';
+      }
+
+      // Cost Estimates on Action Buttons
+      document.getElementById('costAct0').textContent = `-₹${(20 * obs.grid_price).toFixed(0)}`;
+      document.getElementById('bonusAct1').textContent = isPeak ? '+₹50 Peak Bonus!' : '+₹0 (Standard)';
+      document.getElementById('bonusAct2').textContent = isOffPeak ? '+₹60 Net Profit!' : 'No Bonus (>₹5)';
+
+      // 3. Station BESS Storage
+      const bessVal = obs.station_battery_level.toFixed(1);
+      const bessPct = Math.min(100, Math.max(0, Math.round((obs.station_battery_level / 1000.0) * 100)));
+      document.getElementById('valBessLevel').textContent = bessVal;
+      document.getElementById('valBessPct').textContent = `${bessPct}%`;
+      document.getElementById('barBessProgress').style.width = `${bessPct}%`;
+      document.getElementById('schematicBessCap').textContent = `${bessVal} kWh (${bessPct}%)`;
+      
+      // Update Modular 5 Battery Cells
+      const cellCount = Math.round((obs.station_battery_level / 1000.0) * 5);
+      for (let i = 1; i <= 5; i++) {
+        const cell = document.getElementById(`bessCell${i}`);
+        if (cell) {
+          if (i <= cellCount) {
+            cell.className = 'h-3 rounded-sm bg-brand-500 shadow-sm shadow-brand-500/50 transition-all duration-300';
+          } else {
+            cell.className = 'h-3 rounded-sm bg-dark-800 transition-all duration-300';
+          }
+        }
+      }
+
+      const bessWarn = document.getElementById('valBessWarning');
+      const schemHealth = document.getElementById('schematicBessHealth');
+      if (obs.station_battery_level <= 0) {
+        bessWarn.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> CRITICAL: 0 kWh';
+        bessWarn.className = 'text-rose-500 font-black flex items-center gap-1';
+        schemHealth.textContent = 'Depleted';
+        schemHealth.className = 'text-rose-500 font-bold';
+      } else if (obs.station_battery_level <= 200) {
+        bessWarn.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amberGlow-400"></span> LOW FLOOR (<200)';
+        bessWarn.className = 'text-amberGlow-400 font-bold flex items-center gap-1';
+        schemHealth.textContent = 'Guard Floor';
+        schemHealth.className = 'text-amberGlow-400 font-semibold';
+      } else {
+        bessWarn.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Reserve Optimal';
+        bessWarn.className = 'text-emerald-400 font-semibold flex items-center gap-1';
+        schemHealth.textContent = 'Healthy';
+        schemHealth.className = 'text-emerald-400 font-semibold';
+      }
+
+      // 4. EV Vehicle Bay
+      const bayStatus = document.getElementById('valBayStatus');
+      const bayBadge = document.getElementById('valBayBadge');
+      const needText = document.getElementById('valCarNeed');
+      const carBar = document.getElementById('barCarNeed');
+      const schemTitle = document.getElementById('schematicEvTitle');
+      const schemNeed = document.getElementById('schematicEvNeed');
+      const schemBar = document.getElementById('schematicEvBar');
+      const carGraphic = document.getElementById('evCarGraphic');
+      const emptyGraphic = document.getElementById('evEmptyGraphic');
+
+      if (obs.car_present) {
+        bayStatus.textContent = 'EV DOCKED';
+        bayStatus.className = 'font-display font-black text-xl tracking-tight text-emerald-400';
+        bayBadge.textContent = 'CONNECTED';
+        bayBadge.className = 'text-[9px] font-mono uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        needText.textContent = `${obs.car_battery_need.toFixed(1)} kWh needed`;
+        carBar.style.width = `${Math.min(100, (obs.car_battery_need / 80) * 100)}%`;
+
+        schemTitle.textContent = 'VEHICLE CONNECTED';
+        schemTitle.className = 'font-display font-black text-xs text-brand-300 uppercase tracking-wider';
+        schemNeed.textContent = `Needs ${obs.car_battery_need.toFixed(1)} kWh`;
+        schemBar.style.width = `${Math.min(100, (obs.car_battery_need / 80) * 100)}%`;
+
+        carGraphic.classList.remove('hidden');
+        carGraphic.classList.add('flex');
+        emptyGraphic.classList.add('hidden');
+      } else {
+        bayStatus.textContent = 'NO VEHICLE';
+        bayStatus.className = 'font-display font-black text-xl tracking-tight text-slate-400';
+        bayBadge.textContent = 'VACANT';
+        bayBadge.className = 'text-[9px] font-mono uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400';
+        needText.textContent = '0.0 kWh';
+        carBar.style.width = '0%';
+
+        schemTitle.textContent = 'BAY VACANT';
+        schemTitle.className = 'font-display font-black text-xs text-slate-400 uppercase tracking-wider';
+        schemNeed.textContent = 'Awaiting EV Arrival';
+        schemBar.style.width = '0%';
+
+        carGraphic.classList.add('hidden');
+        carGraphic.classList.remove('flex');
+        emptyGraphic.classList.remove('hidden');
+      }
+
+      // 5. Cumulative Reward & Meta Leaderboard Score
+      document.getElementById('valTotalReward').textContent = `₹${currentState.total_reward.toFixed(2)}`;
+      
+      // Meta score formula: (total_reward + 1000) / 2000
+      const metaScore = Math.max(0, Math.min(1.0, (currentState.total_reward + 1000) / 2000));
+      document.getElementById('valMetaScore').textContent = `${metaScore.toFixed(2)} / 1.00`;
+      document.getElementById('barMetaScore').style.width = `${metaScore * 100}%`;
+
+      const tierBadge = document.getElementById('valLeaderboardTier');
+      if (metaScore >= 0.85) {
+        tierBadge.textContent = 'GRADE S • CHAMPION';
+        tierBadge.className = 'text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/40 glow-brand';
+      } else if (metaScore >= 0.70) {
+        tierBadge.textContent = 'GRADE A • PROFITABLE';
+        tierBadge.className = 'text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+      } else if (metaScore >= 0.50) {
+        tierBadge.textContent = 'GRADE B • BALANCED';
+        tierBadge.className = 'text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-cyanGlow-500/15 text-cyanGlow-400 border border-cyanGlow-500/30';
+      } else {
+        tierBadge.textContent = 'GRADE C • SUB-OPTIMAL';
+        tierBadge.className = 'text-[9px] font-mono uppercase font-black px-1.5 py-0.5 rounded bg-amberGlow-500/15 text-amberGlow-400 border border-amberGlow-500/30';
+      }
+
+      // Bottom Telemetry Summary
+      document.getElementById('valCarsServed').textContent = currentState.cars_served;
+      document.getElementById('valPeakBonusCount').textContent = currentState.peak_bonuses;
+      document.getElementById('valTopUpCount').textContent = `₹${currentState.topup_profits.toFixed(0)}`;
+      document.getElementById('valGridCostTotal').textContent = `₹${currentState.grid_costs.toFixed(0)}`;
+
+      updateRecommendation(obs);
+
+      // Latest Formula Banner
+      if (lastStepReward !== null && breakdown) {
+        document.getElementById('formulaStepReward').textContent = `${lastStepReward >= 0 ? '+' : ''}₹${lastStepReward.toFixed(2)}`;
+        document.getElementById('formulaCumReward').textContent = `₹${currentState.total_reward.toFixed(2)}`;
+
+        let parts = [];
+        if (breakdown.car_completed) parts.push('+₹200 EV Turnaround');
+        if (breakdown.peak_bonus > 0) parts.push('+₹50 Peak-Shaving');
+        if (breakdown.topup_bonus > 0) parts.push(`+₹${breakdown.topup_bonus.toFixed(0)} Top-Up Arbitrage`);
+        if (breakdown.grid_cost > 0) parts.push(`-₹${breakdown.grid_cost.toFixed(0)} Grid Bill`);
+        if (breakdown.time_pen > 0) parts.push(`-₹${breakdown.time_pen.toFixed(0)} Wait Delay`);
+
+        document.getElementById('formulaText').textContent = parts.join(' | ') || 'Zero net cost / idle wait step.';
+      }
+    }
+
+    // AI Dynamic Copilot Recommendation
+    function updateRecommendation(obs) {
+      const recText = document.getElementById('aiRecommendationText');
+      if (obs.car_present) {
+        if (obs.grid_price > 10.0 && obs.station_battery_level > 200.0) {
+          recText.innerHTML = 'Peak hours (₹15.0) with EV docked! Recommended: <strong>Action 1: BESS Charge</strong> to capture <span class="text-brand-400 font-bold">+₹50 Peak-Shave bonus</span> and avoid expensive grid!';
+        } else if (obs.station_battery_level > 200.0 && obs.car_battery_need > 20.0) {
+          recText.innerHTML = 'High vehicle battery need. Recommended: <strong>Action 3: Hybrid Turbo</strong> (40 kW) to quickly complete EV and lock in <span class="text-brand-400 font-bold">+₹200 completion bonus</span>.';
+        } else {
+          recText.innerHTML = 'EV present with lower BESS reserve. Recommended: <strong>Action 0: Grid Charge</strong> to safeguard BESS from reaching critical floor.';
+        }
+      } else {
+        if (obs.grid_price < 5.0 && obs.station_battery_level < 1000.0) {
+          recText.innerHTML = 'Off-peak tariff (₹4.0) with empty bay! Recommended: <strong>Action 2: Top-Up BESS</strong> to store cheap electricity and bank <span class="text-brand-400 font-bold">+₹60 net arbitrage profit</span>!';
+        } else {
+          recText.innerHTML = 'Standard tariff with empty bay. Recommended: <strong>Action 0: Standby</strong> — topping up during peak/normal tariff yields zero arbitrage bonus.';
+        }
+      }
+    }
+
+    // Agent Policy Selection
+    function getAgentAction(obs) {
+      const agentType = document.getElementById('selAgentType').value;
+      if (agentType === 'random') {
+        return Math.floor(Math.random() * 4);
+      } else if (agentType === 'greedy') {
+        if (obs.car_present) return 3; // Always hybrid turbo
+        return obs.grid_price < 5.0 ? 2 : 0;
+      }
+      
+      // Default: Optimal Heuristic
+      if (obs.car_present) {
+        if (obs.station_battery_level > 200.0) return 1;
+        return 0;
+      } else {
+        if (obs.grid_price < 5.0 && obs.station_battery_level < 1000.0) return 2;
+        return 0;
+      }
+    }
+
+    async function stepAI() {
+      const bestAct = getAgentAction(currentState);
+      await executeAction(bestAct);
+    }
+
+    // Auto-Play
+    function toggleAutoPlay() {
+      if (isAutoPlaying) pauseAutoPlay();
+      else startAutoPlay();
+    }
+
+    function startAutoPlay() {
+      isAutoPlaying = true;
+      document.getElementById('textPlay').textContent = 'Pause Simulation [P]';
+      document.getElementById('iconPlay').setAttribute('data-lucide', 'pause');
+      lucide.createIcons();
+
+      const speed = parseInt(document.getElementById('selSpeed').value, 10);
+      autoPlayTimer = setInterval(async () => {
+        if (currentState.done) {
+          pauseAutoPlay();
+          return;
+        }
+        await stepAI();
+      }, speed);
+    }
+
+    function pauseAutoPlay() {
+      isAutoPlaying = false;
+      if (autoPlayTimer) clearInterval(autoPlayTimer);
+      document.getElementById('textPlay').textContent = 'Auto-Run (AI Agent)';
+      document.getElementById('iconPlay').setAttribute('data-lucide', 'play');
+      lucide.createIcons();
+    }
+
+    function updateSimSpeed() {
+      if (isAutoPlaying) {
+        pauseAutoPlay();
+        startAutoPlay();
+      }
+    }
+
+    // Render Telemetry Table
+    function renderTelemetryTable() {
+      const tbody = document.getElementById('telemetryTableBody');
+      const badge = document.getElementById('telemetryCountBadge');
+      badge.textContent = `${telemetryHistory.length} steps`;
+
+      if (telemetryHistory.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-500">No steps recorded yet. Execute an action or click Auto-Run.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = telemetryHistory.slice(0, 60).map(row => {
+        const rewColor = row.reward > 0 ? 'text-emerald-400 font-bold' : (row.reward < 0 ? 'text-amberGlow-400' : 'text-slate-400');
+        return `
+          <tr class="hover:bg-dark-850/80 transition">
+            <td class="p-2.5 font-bold">${row.step}</td>
+            <td class="p-2.5 text-slate-400">${row.time}</td>
+            <td class="p-2.5 font-semibold text-white">${row.actionName}</td>
+            <td class="p-2.5 font-mono">₹${row.tariff.toFixed(1)}</td>
+            <td class="p-2.5 font-mono">${row.bess.toFixed(1)} kWh</td>
+            <td class="p-2.5 font-mono">${row.carNeed > 0 ? row.carNeed.toFixed(1) + ' kWh' : '-'}</td>
+            <td class="p-2.5 font-mono ${rewColor}">${row.reward >= 0 ? '+' : ''}₹${row.reward.toFixed(2)}</td>
+            <td class="p-2.5 font-mono text-white font-bold">₹${row.cumulative.toFixed(2)}</td>
+            <td class="p-2.5 text-[10px] text-slate-400 truncate max-w-xs">${formatBreakdownText(row.breakdown)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function formatBreakdownText(b) {
+      if (!b) return '-';
+      let items = [];
+      if (b.car_completed) items.push('Car +200');
+      if (b.peak_bonus) items.push('Peak +50');
+      if (b.topup_bonus) items.push(`TopUp +${b.topup_bonus.toFixed(0)}`);
+      if (b.grid_cost) items.push(`Grid -${b.grid_cost.toFixed(0)}`);
+      if (b.time_pen) items.push(`Wait -${b.time_pen.toFixed(0)}`);
+      return items.join(', ') || 'Standby';
+    }
+
+    function clearHistoryLog() {
+      telemetryHistory = [];
+      renderTelemetryTable();
+    }
+
+    function exportTelemetryCSV() {
+      if (telemetryHistory.length === 0) {
+        alert('No telemetry data to export yet!');
+        return;
+      }
+      let csv = 'Step,Time,Action,Tariff,BESS_kWh,CarNeed_kWh,Reward,Cumulative_Profit\n';
+      telemetryHistory.forEach(r => {
+        csv += `${r.step},${r.time},"${r.actionName}",${r.tariff},${r.bess},${r.carNeed},${r.reward},${r.cumulative}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `safestation_telemetry_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function getActionName(id) {
+      const map = {
+        0: '0: Grid Direct (20kW)',
+        1: '1: BESS Clean (20kW)',
+        2: '2: Storage Top-Up (30kW)',
+        3: '3: Hybrid Turbo (40kW)'
+      };
+      return map[id] || `Action ${id}`;
+    }
+
+    function formatHour(hour, step) {
+      const q = (step % 4) * 15;
+      const mm = q === 0 ? '00' : q;
+      const hh = hour.toString().padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+
+    // Benchmark Arena
+    async function runAllBenchmarks() {
+      const consoleBox = document.getElementById('benchmarkConsole');
+      consoleBox.innerHTML = '<div class="text-brand-400 font-bold">// Initiating Meta OpenEnv Hackathon 2026 Validation Arena...</div>';
+
+      try {
+        const res = await fetch('/api/benchmark', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.logs) {
+          data.logs.forEach(line => {
+            const div = document.createElement('div');
+            if (line.includes('[START]')) div.className = 'text-cyanGlow-400 font-bold';
+            else if (line.includes('[END]')) div.className = 'text-emerald-400 font-bold';
+            else if (line.includes('[FINAL]')) div.className = 'text-brand-300 font-black';
+            else div.className = 'text-slate-300';
+            div.textContent = line;
+            consoleBox.appendChild(div);
+          });
+        }
+
+        document.getElementById('benchFinalScore').textContent = `${data.average_score.toFixed(2)} / 1.00`;
+        document.getElementById('benchScoreEasy').textContent = `${data.task_scores.easy_start.toFixed(2)} / 1.00`;
+        document.getElementById('benchScoreMed').textContent = `${data.task_scores.medium_ops.toFixed(2)} / 1.00`;
+        document.getElementById('benchScoreHard').textContent = `${data.task_scores.hard_constraints.toFixed(2)} / 1.00`;
+
+        confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
+        playSound('bonus');
+        consoleBox.scrollTop = consoleBox.scrollHeight;
+      } catch (err) {
+        consoleBox.innerHTML += `<div class="text-rose-400 font-bold">[ERROR] Benchmark failed: ${err}</div>`;
+      }
+    }
+
+    async function runSingleTask(taskId) {
+      switchView('sim');
+      const taskConfigs = {
+        'easy_start': { h: 10, b: 50, c: 1, n: 40 },
+        'medium_ops': { h: 19, b: 80, c: 1, n: 30 },
+        'hard_constraints': { h: 3, b: 10, c: 0, n: 0 }
+      };
+      await resetEpisode(taskConfigs[taskId]);
+    }
+
+    // Scenario Injector Modal
+    function openScenarioModal() {
+      document.getElementById('modalScenario').classList.remove('hidden');
+    }
+
+    function closeScenarioModal() {
+      document.getElementById('modalScenario').classList.add('hidden');
+    }
+
+    function updateInjectorLabels() {
+      const h = document.getElementById('sliderInjHour').value;
+      const b = document.getElementById('sliderInjBess').value;
+      const n = document.getElementById('sliderInjNeed').value;
+      document.getElementById('labelInjHour').textContent = `${h.toString().padStart(2, '0')}:00`;
+      document.getElementById('labelInjBess').textContent = `${parseFloat(b).toFixed(1)} kWh`;
+      document.getElementById('labelInjNeed').textContent = `${parseFloat(n).toFixed(1)} kWh`;
+    }
+
+    function applyPreset(preset) {
+      if (preset === 'peak_crisis') {
+        document.getElementById('sliderInjHour').value = 19;
+        document.getElementById('sliderInjBess').value = 750;
+        document.getElementById('checkInjCar').checked = true;
+        document.getElementById('sliderInjNeed').value = 40;
+      } else if (preset === 'midnight_arb') {
+        document.getElementById('sliderInjHour').value = 2;
+        document.getElementById('sliderInjBess').value = 200;
+        document.getElementById('checkInjCar').checked = false;
+        document.getElementById('sliderInjNeed').value = 10;
+      } else if (preset === 'bess_danger') {
+        document.getElementById('sliderInjHour').value = 12;
+        document.getElementById('sliderInjBess').value = 50;
+        document.getElementById('checkInjCar').checked = true;
+        document.getElementById('sliderInjNeed').value = 30;
+      } else if (preset === 'supercharge') {
+        document.getElementById('sliderInjHour').value = 15;
+        document.getElementById('sliderInjBess').value = 900;
+        document.getElementById('checkInjCar').checked = true;
+        document.getElementById('sliderInjNeed').value = 60;
+      }
+      updateInjectorLabels();
+    }
+
+    async function commitInjectedScenario() {
+      const h = parseInt(document.getElementById('sliderInjHour').value, 10);
+      const b = parseFloat(document.getElementById('sliderInjBess').value);
+      const c = document.getElementById('checkInjCar').checked ? 1 : 0;
+      const n = parseFloat(document.getElementById('sliderInjNeed').value);
+
+      closeScenarioModal();
+      await resetEpisode({ h, b, c, n });
+    }
+
+  </script>
+</body>
+</html>
